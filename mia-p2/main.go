@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"bytes"
 	"container/list"
 	"encoding/binary"
 	"fmt"
@@ -128,9 +129,9 @@ func RecorrerListaComando(ListaComandos *list.List, ListaDiscos *list.List) {
 				ParamValidos = EjecutarComandoMount(comandoTemp.Name, comandoTemp.Propiedades, ListaDiscos)
 				if ParamValidos == false {
 					fmt.Println("Parametros Invalidos")
+				} else {
+					EjecutarReporteMount(ListaDiscos)
 				}
-			} else {
-				EjecutarReporteMount(ListaDiscos)
 			}
 		case "exit":
 			fmt.Println("")
@@ -158,7 +159,7 @@ func RecorrerListaComando(ListaComandos *list.List, ListaDiscos *list.List) {
 				fmt.Println("Error, parametros no validos")
 			}
 		case "rep":
-			//ParamValidos = EjecutarComandoReporte(comandoTemp.Name, comandoTemp.Propiedades, ListaDiscos)
+			ParamValidos = EjecutarComandoReporte(comandoTemp.Name, comandoTemp.Propiedades, ListaDiscos)
 			if ParamValidos == false {
 				fmt.Println("Error, parametros no validos")
 			}
@@ -381,12 +382,11 @@ func EjecutarComandoFDISK(nombreComando string, propiedadesTemp []Propiedad) (Pa
 			if err != nil {
 				fmt.Println("No existe el archivo en la ruta")
 			}
-			//El mbr ya se a leido,2.Verificar si existe espacion disponible o que no lo rebase
+
 			if HayEspacio(TamanioTotalParticion, mbr.MbrTamanio) {
 				return false
 			} //Verificar si ya hay particiones
 			if BytesToString(Particiones[0].Status_particion) == "1" {
-				fmt.Println("El nombre de la particion ya existe.")
 				for i := 0; i < 4; i++ {
 					//Posicion en bytes del partstar de la n particion
 					startPart += Particiones[i].TamanioTotal
@@ -420,7 +420,7 @@ func EjecutarComandoFDISK(nombreComando string, propiedadesTemp []Propiedad) (Pa
 		case "l":
 			fmt.Println("Particion Logica")
 			if !HayExtendida(propiedades[3]) {
-				fmt.Println("No existe una particon Extendida")
+				fmt.Println("No existe una particion Extendida")
 				return false
 			}
 			ebr := EBR{}
@@ -731,9 +731,6 @@ func ReadFile(path string) (funciona bool) {
 	if err != nil {
 		fmt.Println("No existe el archivo en la ruta")
 	}
-	//fmt.Println("Tamanio del MBR")
-	//fmt.Println(mbr.Particiones)
-	//fmt.Printf("Fecha: %s\n", mbr.MbrFechaCreacion)
 	return true
 }
 func HayEspacio(TamanioTotalParticion int64, tamanioDisco int64) bool {
@@ -746,7 +743,6 @@ func HayEspacio(TamanioTotalParticion int64, tamanioDisco int64) bool {
 
 /*------------------------------MOUNT----------------------------------------*/
 func EjecutarComandoMount(nombreComando string, propiedadesTemp []Propiedad, ListaDiscos *list.List) (ParamValidos bool) {
-	fmt.Println("----------------- Ejecutando MOUNT -----------------")
 	var propiedades [2]string
 	var nombre [15]byte
 	ParamValidos = true
@@ -774,7 +770,6 @@ func EjecutarComandoMount(nombreComando string, propiedadesTemp []Propiedad, Lis
 	}
 }
 func EjecutarReporteMount(ListaDiscos *list.List) {
-	fmt.Println("----------------- Ejecutando REPORTES MOUNT -----------------")
 	for element := ListaDiscos.Front(); element != nil; element = element.Next() {
 		var disco DISCO
 		disco = element.Value.(DISCO)
@@ -782,7 +777,7 @@ func EjecutarReporteMount(ListaDiscos *list.List) {
 			for i := 0; i < len(disco.Particiones); i++ {
 				var mountTemp = disco.Particiones[i]
 				if mountTemp.NombreParticion != "" {
-					fmt.Println("->", mountTemp.Id, "->", disco.Path, "->", mountTemp.NombreParticion)
+					fmt.Println("id=", mountTemp.Id, " ruta=", disco.Path, "nombre_particion=", mountTemp.NombreParticion)
 				}
 			}
 		}
@@ -879,25 +874,24 @@ func ParticionMontar(ListaDiscos *list.List, nombreParticion string, nombreDisco
 					disco.Particiones[i] = mountTemp
 					break
 				} else if BytesToString(mountTemp.Estado) == "1" && mountTemp.NombreParticion == nombreParticion {
-					fmt.Println("La Particion ya esta montada")
 					break
 				}
 			}
 			element.Value = disco
 			break
 		} else if BytesToString(disco.Estado) == "1" && ExisteDisco(ListaDiscos, nombreDisco) && nombreDisco == disco.NombreDisco {
-			fmt.Println("Otra particion montada en el disco ", BytesToString(disco.Id))
+
 			for i := 0; i < len(disco.Particiones); i++ {
 				var mountTemp = disco.Particiones[i]
 				if BytesToString(mountTemp.Estado) == "0" {
-					mountTemp.Id = "vd" + BytesToString(disco.Id) + mountTemp.Id
+					mountTemp.Id = "14" + BytesToString(disco.Id) + mountTemp.Id
 					mountTemp.NombreParticion = nombreParticion
 					copy(mountTemp.Estado[:], "1")
 					copy(mountTemp.EstadoMKS[:], "0")
 					disco.Particiones[i] = mountTemp
 					break
 				} else if BytesToString(mountTemp.Estado) == "1" && mountTemp.NombreParticion == nombreParticion {
-					fmt.Println("La Particion ya esta montada")
+					//fmt.Println("La Particion ya esta montada")
 					break
 				}
 			}
@@ -918,6 +912,202 @@ func ExisteDisco(ListaDiscos *list.List, nombreDisco string) bool {
 		}
 	}
 	return Existe
+}
+
+/*--------------------------REPORTES----------------------------------------*/
+func EjecutarComandoReporte(nombreComando string, propiedadesTemp []Propiedad, ListaDiscos *list.List) (ParamValidos bool) {
+	ParamValidos = true
+	var propiedades [4]string
+	if len(propiedadesTemp) >= 1 {
+		//Recorrer la lista de propiedades
+		for i := 0; i < len(propiedadesTemp); i++ {
+			var propiedadTemp = propiedadesTemp[i]
+			var nombrePropiedad string = propiedadTemp.Name
+			switch strings.ToLower(nombrePropiedad) {
+			case "-id":
+				propiedades[0] = propiedadTemp.Val
+			case "-path":
+				propiedades[1] = propiedadTemp.Val
+			case "-name":
+				propiedades[2] = propiedadTemp.Val
+			case "-ruta":
+				propiedades[3] = propiedadTemp.Val
+			case "-sigue":
+				propiedades[1] += propiedadTemp.Val
+			default:
+				fmt.Println("Error al Ejecutar el Comando", nombrePropiedad)
+			}
+		}
+		EsComilla := propiedades[1][0:1]
+		if EsComilla == "\"" {
+			if propiedades[3] != "" {
+				propiedades[3] = propiedades[3][1 : len(propiedades[3])-1]
+			}
+			propiedades[1] = propiedades[1][1 : len(propiedades[1])-1]
+		}
+		carpetas_Graficar := strings.Split(propiedades[1], "/")
+		var comando = ""
+		for i := 1; i < len(carpetas_Graficar)-1; i++ {
+			comando += carpetas_Graficar[i] + "/"
+		}
+		fmt.Println(comando)
+		executeComand("mkdir " + comando[0:len(comando)-1])
+		switch strings.ToLower(propiedades[2]) {
+		case "mbr":
+			GraficarDisco(propiedades[0], ListaDiscos, propiedades[1])
+		case "tree":
+			//GraficarTreeFull(propiedades[0], propiedades[1], propiedades[3], ListaDiscos)
+		default:
+			fmt.Println("Reporte incorrecto.")
+
+		}
+		return ParamValidos
+	} else {
+		ParamValidos = false
+		return ParamValidos
+	}
+}
+
+func GraficarDisco(idParticion string, ListaDiscos *list.List, path string) bool {
+	var NombreParticion [15]byte
+	var buffer bytes.Buffer
+	buffer.WriteString("digraph G{\ntbl [\nshape=box\nlabel=<\n<table border='0' cellborder='0' width='100' height=\"30\">\n<tr>")
+	pathDisco, _, _ := RecorrerListaDisco(idParticion, ListaDiscos)
+	fmt.Println(pathDisco)
+	f, err := os.OpenFile(pathDisco, os.O_RDWR, 0755)
+	if err != nil {
+		fmt.Println("No existe la ruta" + pathDisco)
+		return false
+	}
+	defer f.Close()
+	PorcentajeUtilizao := 0.0
+	var EspacioUtilizado int64 = 0
+	mbr := MBR{}
+	f.Seek(0, 0)
+	err = binary.Read(f, binary.BigEndian, &mbr)
+	TamanioDisco := mbr.MbrTamanio
+	Particiones := mbr.Particiones
+	buffer.WriteString("<td height='30' width='75'> MBR </td>")
+	for i := 0; i < 4; i++ {
+		if convertName(Particiones[i].NombreParticion[:]) != convertName(NombreParticion[:]) && strings.ToLower(BytesToString(Particiones[i].TipoParticion)) == "p" {
+			PorcentajeUtilizao = (float64(Particiones[i].TamanioTotal) / float64(TamanioDisco)) * 100
+			buffer.WriteString("<td height='30' width='75.0'>PRIMARIA <br/>" + convertName(Particiones[i].NombreParticion[:]) + " <br/> Ocupado: " + strconv.Itoa(int(PorcentajeUtilizao)) + "%</td>")
+			EspacioUtilizado += Particiones[i].TamanioTotal
+		} else if convertName(Particiones[i].Status_particion[:]) == "0" {
+			buffer.WriteString("<td height='30' width='75.0'>Libre</td>")
+		}
+		if strings.ToLower(BytesToString(Particiones[i].TipoParticion)) == "e" {
+			EspacioUtilizado += Particiones[i].TamanioTotal
+			PorcentajeUtilizao = (float64(Particiones[i].TamanioTotal) / float64(TamanioDisco)) * 100
+			buffer.WriteString("<td  height='30' width='15.0'>\n")
+			buffer.WriteString("<table border='5'  height='30' WIDTH='15.0' cellborder='1'>\n")
+			buffer.WriteString(" <tr>  <td height='60' colspan='100%'>EXTENDIDA <br/>" + convertName(Particiones[i].NombreParticion[:]) + " <br/> Ocupado:" + strconv.Itoa(int(PorcentajeUtilizao)) + "%</td>  </tr>\n<tr>")
+			var InicioExtendida int64 = Particiones[i].Inicio_particion
+			f.Seek(InicioExtendida, 0)
+			ebr := EBR{}
+			err = binary.Read(f, binary.BigEndian, &ebr)
+			if ebr.Particion_Siguiente == -1 {
+				fmt.Println("No Hay particiones Logicas")
+			} else {
+				var EspacioUtilizado int64 = 0
+				cont := 0
+				f.Seek(InicioExtendida, 0)
+				err = binary.Read(f, binary.BigEndian, &ebr)
+				for {
+					if ebr.Particion_Siguiente == -1 {
+						break
+					} else {
+						f.Seek(ebr.Particion_Siguiente, 0)
+						err = binary.Read(f, binary.BigEndian, &ebr)
+						EspacioUtilizado += ebr.TamanioTotal
+						PorcentajeUtilizao = (float64(ebr.TamanioTotal) / float64(Particiones[i].TamanioTotal)) * 100
+						buffer.WriteString("<td height='30'>EBR</td><td height='30'> Logica:  " + convertName(ebr.NombreParticion[:]) + " " + strconv.Itoa(int(PorcentajeUtilizao)) + "%</td>")
+						cont++
+					}
+				}
+				if (Particiones[i].TamanioTotal - EspacioUtilizado) > 0 {
+					PorcentajeUtilizao = (float64(TamanioDisco-EspacioUtilizado) / float64(TamanioDisco)) * 100
+					buffer.WriteString("<td height='30' width='100%'>Libre: " + strconv.Itoa(int(PorcentajeUtilizao)) + "%</td>")
+				}
+			}
+			buffer.WriteString("</tr>\n")
+			buffer.WriteString("</table>\n</td>")
+		}
+	}
+	if (TamanioDisco - EspacioUtilizado) > 0 {
+		PorcentajeUtilizao = (float64(TamanioDisco-EspacioUtilizado) / float64(TamanioDisco)) * 100
+		buffer.WriteString("<td height='30' width='75.0'>Libre: " + strconv.Itoa(int(PorcentajeUtilizao)) + "%</td>")
+	}
+	buffer.WriteString("     </tr>\n</table>\n>];\n}")
+	var datos string
+	datos = string(buffer.String())
+	CreateArchivo(path, datos)
+	return false
+}
+
+func RecorrerListaDisco(id string, ListaDiscos *list.List) (string, string, string) {
+	Id := strings.ReplaceAll(id, "14", "")
+	fmt.Println("id de recorrer ", Id)
+	//NoParticion := Id[1:]
+	IdDisco := Id[:1]
+	fmt.Println("id de IdDisco ", Id)
+	pathDisco := ""
+	nombreParticion := ""
+	nombreDisco := ""
+	for element := ListaDiscos.Front(); element != nil; element = element.Next() {
+		var disco DISCO
+		disco = element.Value.(DISCO)
+		if BytesToString(disco.Id) == IdDisco {
+			for i := 0; i < len(disco.Particiones); i++ {
+				var mountTemp = disco.Particiones[i]
+				//fmt.Println("ID DISCOS MOUNT", mountTemp.Id)
+				if mountTemp.Id == id {
+					copy(mountTemp.EstadoMKS[:], "1")
+					nombreParticion = mountTemp.NombreParticion
+					pathDisco = disco.Path
+					nombreDisco = disco.NombreDisco
+					return pathDisco, nombreParticion, nombreDisco
+					break
+				}
+			}
+
+		}
+		element.Value = disco
+	}
+	return "", "", ""
+}
+
+func CreateArchivo(path string, data string) {
+	propiedades := strings.Split(path, "/")
+	nombreArchivo := propiedades[len(propiedades)-1]
+	f, err := os.Create(path)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	defer f.Close()
+
+	_, err2 := f.WriteString(data)
+
+	if err2 != nil {
+		log.Fatal(err2)
+	}
+	executeComand("dot -Tpdf " + path + " -o " + nombreArchivo[0:len(nombreArchivo)-4] + ".pdf")
+	//executeComand("xdg-open " + nombreArchivo[0:len(nombreArchivo)-4] + ".pdf")
+	//executeComand("xdg-open " + path)
+
+}
+
+func convertName(c []byte) string {
+	n := -1
+	for i, b := range c {
+		if b == 0 {
+			break
+		}
+		n = i
+	}
+	return string(c[:n+1])
 }
 
 //Estructura para cada Comando y sus Propiedades
