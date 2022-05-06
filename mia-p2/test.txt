@@ -3,12 +3,12 @@
 #Particiones
 #fdisk -size=5 -fit=BF -type=P -unit=m -path=/home/ec2-user/PROYECTO2/demo/discoPrueba3.dk -name=Particion1
 fdisk -type=P -unit=m -size=5 -fit=BF -path=/home/ec2-user/PROYECTO2/demo/discoPrueba3.dk -name=Particion2
-#fdisk -type=E -unit=m -size=4 -fit=BF -path=/home/ec2-user/PROYECTO2/demo/discoPrueba.dk -name=Particion3
+#fdisk -type=E  -size=4 -fit=BF -unit=m-path=/home/ec2-user/PROYECTO2/demo/discoPrueba.dk -name=Particion3
 #fdisk -type=P -unit=m -size=4 -fit=BF -path=/home/ec2-user/PROYECTO2/demo/discoPrueba3.dk -name=Particion4
 #fdisk -type=L -unit=m -size=1 -fit=BF -path=/home/ec2-user/PROYECTO2/demo/discoPrueba.dk -name=ParticionL1
 rmdisk -path=/home/ec2-user/PROYECTO2/demo/discoPrueba.dk
 
 mount -path=/home/ec2-user/PROYECTO2/demo/discoPrueba3.dk -name=Particion4
-rep -id=14a1 -path=/home/ec2-user/PROYECTO2/demo/mbr.pdf -name=mbr
-mkfs -id=14a1 -type=full
-login -usuario=root -password=123000000 -id=14a1
+rep -id=141a -path=/home/ec2-user/PROYECTO2/demo/mbr.pdf -name=mbr
+mkfs -id=141a -type=full
+login -usuario=root -password=123 -id=141a

@@ -817,6 +817,7 @@ func IdValido(id string, ListaDiscos *list.List) bool {
 		if disco.NombreDisco != "" {
 			for i := 0; i < len(disco.Particiones); i++ {
 				var mountTemp = disco.Particiones[i]
+
 				if mountTemp.NombreParticion != "" {
 					if mountTemp.Id == id {
 						return true
@@ -890,11 +891,10 @@ func ParticionMontar(ListaDiscos *list.List, nombreParticion string, nombreDisco
 			disco.NombreDisco = nombreDisco
 			disco.Path = path
 			copy(disco.Estado[:], "1")
-			//#id->vda1
 			for i := 0; i < len(disco.Particiones); i++ {
 				var mountTemp = disco.Particiones[i]
 				if BytesToString(mountTemp.Estado) == "0" {
-					mountTemp.Id = "14" + BytesToString(disco.Id) + mountTemp.Id
+					mountTemp.Id = "14" + mountTemp.Id + BytesToString(disco.Id)
 					mountTemp.NombreParticion = nombreParticion
 					copy(mountTemp.Estado[:], "1")
 					copy(mountTemp.EstadoMKS[:], "0")
@@ -911,7 +911,7 @@ func ParticionMontar(ListaDiscos *list.List, nombreParticion string, nombreDisco
 			for i := 0; i < len(disco.Particiones); i++ {
 				var mountTemp = disco.Particiones[i]
 				if BytesToString(mountTemp.Estado) == "0" {
-					mountTemp.Id = "14" + BytesToString(disco.Id) + mountTemp.Id
+					mountTemp.Id = "14" + mountTemp.Id + BytesToString(disco.Id)
 					mountTemp.NombreParticion = nombreParticion
 					copy(mountTemp.Estado[:], "1")
 					copy(mountTemp.EstadoMKS[:], "0")
@@ -1133,19 +1133,23 @@ func EjecutarComandoMKFS(nombreComando string, propiedadesTemp []Propiedad, List
 func ExecuteMKFS(id string, ListaDiscos *list.List) bool {
 	dt := time.Now()
 	idValido := IdValido(id, ListaDiscos)
+
 	if idValido == false {
 		fmt.Println("El id no existe")
 		return false
 	}
 	Id := strings.ReplaceAll(id, "14", "")
-	NoParticion := Id[1:]
-	IdDisco := Id[:1]
+	//mt.Println("idMKfs", Id)
+	NoParticion := Id[:1]
+	IdDisco := Id[1:]
 	pathDisco := ""
 	nombreParticion := ""
 	nombreDisco := ""
+
 	for element := ListaDiscos.Front(); element != nil; element = element.Next() {
 		var disco DISCO
 		disco = element.Value.(DISCO)
+
 		if BytesToString(disco.Id) == IdDisco {
 			for i := 0; i < len(disco.Particiones); i++ {
 				var mountTemp = disco.Particiones[i]
@@ -1694,8 +1698,8 @@ func ExecuteLogin(usuario string, password string, id string, ListaDiscos *list.
 
 func RecorrerListaDisco(id string, ListaDiscos *list.List) (string, string, string) {
 	Id := strings.ReplaceAll(id, "14", "")
-	//NoParticion := Id[1:]
-	IdDisco := Id[:1]
+	//NoParticion := Id[:1]
+	IdDisco := Id[1:]
 	pathDisco := ""
 	nombreParticion := ""
 	nombreDisco := ""
