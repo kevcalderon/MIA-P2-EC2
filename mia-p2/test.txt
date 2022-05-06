@@ -11,4 +11,4 @@ rmdisk -path=/home/ec2-user/PROYECTO2/demo/discoPrueba.dk
 mount -path=/home/ec2-user/PROYECTO2/demo/discoPrueba3.dk -name=Particion4
 rep -id=14a1 -path=/home/ec2-user/PROYECTO2/demo/mbr.pdf -name=mbr
 mkfs -id=14a1 -type=full
-login -usuario=root -password=123 -id=14a1
+login -usuario=root -password=123000000 -id=14a1

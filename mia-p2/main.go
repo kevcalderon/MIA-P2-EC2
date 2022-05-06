@@ -985,7 +985,7 @@ func EjecutarComandoReporte(nombreComando string, propiedadesTemp []Propiedad, L
 		case "tree":
 			//GraficarTreeFull(propiedades[0], propiedades[1], propiedades[3], ListaDiscos)
 		default:
-			fmt.Println("Reporte incorrecto.")
+			fmt.Println("Nombre del reporte es incorrecto.")
 
 		}
 		return ParamValidos
@@ -1222,7 +1222,7 @@ func ExecuteMKFS(id string, ListaDiscos *list.List) bool {
 	superBloque.Sb_first_free_bit_detalle_directoriio = InicioBitmapDD
 	superBloque.Sb_dirst_free_bit_tabla_inodo = InicioBitmapInodo
 	superBloque.Sb_first_free_bit_bloques = InicioBitmapBloque
-	superBloque.Sb_magic_num = 61267
+	superBloque.Sb_magic_num = 201902714
 	superBloque.InicioCopiaSB = InicioCopiaSB
 	superBloque.ConteoAVD = 0
 	superBloque.ConteoDD = 0
@@ -1575,6 +1575,8 @@ func DevolverSuperBlque(path string, nombreParticion string) (SB, int64) {
 	return sb, 0
 }
 
+/*------------------------LOGIN----------------------------------------------------------------*/
+
 func EjecutarComandoLogin(nombreComando string, propiedadesTemp []Propiedad, ListaDiscos *list.List) (bool, string) {
 	ParamValidos := true
 	usuario := ""
@@ -1677,15 +1679,14 @@ func ExecuteLogin(usuario string, password string, id string, ListaDiscos *list.
 	}
 	lineaUsuarioTxt := strings.Split(userstxt, "\n")
 	for i := 0; i < len(lineaUsuarioTxt); i++ {
-		if len(lineaUsuarioTxt[i]) != 17 {
-			usuario_grupo := strings.Split(lineaUsuarioTxt[i], ",")
-			if usuario_grupo[1] == "U" {
-				if usuario_grupo[3] == usuario && usuario_grupo[4] == password {
-					fmt.Println("Inicio sesión correctamente")
-					return true, usuario
-				}
+		usuario_grupo := strings.Split(lineaUsuarioTxt[i], ",")
+		if usuario_grupo[1] == "U" {
+			if usuario_grupo[3] == usuario && usuario_grupo[4] == password {
+				fmt.Println("Inicio sesión correctamente")
+				return true, usuario
 			}
 		}
+
 	}
 	fmt.Println(nombreDisco, mbr.MbrTamanio, sizeParticion)
 	return false, ""
